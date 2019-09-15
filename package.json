@@ -1,0 +1,25 @@
+{
+  "name": "alert-indicator-api",
+  "version": "1.0.0",
+  "description": "this will be handling aws-iot-sdk npm library",
+  "main": "app.js",
+  "scripts": {
+    "api": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/supun-kanda/alert-indicator.git"
+  },
+  "author": "supun-kanda",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/supun-kanda/alert-indicator/issues"
+  },
+  "homepage": "https://github.com/supun-kanda/alert-indicator#readme",
+  "dependencies": {
+    "aws-iot-device-sdk": "^2.2.1",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1"
+  }
+}
