@@ -58,6 +58,7 @@ void callback(char *topic, byte *payload, unsigned int length)
       alert_state = 1;
       Serial.println("Turning Light OFF");
     }
+    initializer = true;
   }
 }
 ////////////////////////////////////////////////////////////
