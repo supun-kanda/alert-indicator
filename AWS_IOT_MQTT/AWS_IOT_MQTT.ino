@@ -32,7 +32,7 @@ const char *AWS_endpoint = "abx9e94fmlpan-ats.iot.us-west-2.amazonaws.com"; //MQ
 WiFiClientSecure espClient;
 
 int alert_state = 0;
-bool cm_alert_status = false, push_button_status = false, indicator_status=false, initializer = true;
+bool push_button_status = false, indicator_status = false, initializer = true;
 unsigned long t = 0, ref = 0;
 String alert_type, alert_message;
 
@@ -44,15 +44,19 @@ void callback(char *topic, byte *payload, unsigned int length)
   alert_type = doc["type"].as<String>();
   alert_message = doc["message"].as<String>();
 
-  if ((String)topic == "cm-alerts") {
-    if(alert_type == "ERROR"){
+  if ((String)topic == "cm-alerts")
+  {
+    if (alert_type == "ERROR")
+    {
       alert_state = 2;
       Serial.print("\nError Message: ");
       Serial.println(alert_message);
       Serial.println("Turning Light ON");
-    } else if (alert_type == "FIXED"){
+    }
+    else if (alert_type == "FIXED")
+    {
       alert_state = 1;
-      Serial.println("Turning Light OFF");  
+      Serial.println("Turning Light OFF");
     }
   }
 }
@@ -64,12 +68,16 @@ char msg[50];
 int value = 0;
 
 /////////////////  Load a File   ///////////////////////////
-File loadFile(char *filename){
+File loadFile(char *filename)
+{
   File file = SPIFFS.open(filename, "r");
-  if (file) {
+  if (file)
+  {
     Serial.print("Successfully opened ");
     Serial.println(filename);
-  } else {
+  }
+  else
+  {
     Serial.print("Failed to open ");
     Serial.println(filename);
   }
@@ -110,32 +118,36 @@ void setup_wifi()
 ////////////////////////////////////////////////////////////
 
 /////////////////////   Alert   ////////////////////////////
-void alerts(int status){
+void alerts(int status)
+{
   digitalWrite(INDICATOR, flasher_value(status));
-  if (status==2)
+  if (status == 2)
     digitalWrite(RELAY_SIGNAL, status);
   else
-    digitalWrite(RELAY_SIGNAL, LOW);  
+    digitalWrite(RELAY_SIGNAL, LOW);
 }
 ////////////////////////////////////////////////////////////
 
 ///////////////////   Flasher   ////////////////////////////
-bool flasher_value(int status){
-  if (status==1)
+bool flasher_value(int status)
+{
+  if (status == 1)
     return true;
   if (!status)
     return false;
 
   t = millis();
-  if (initializer){
+  if (initializer)
+  {
     ref = t;
     initializer = false;
   }
-  if (t > ref){
+  if (t > ref)
+  {
     indicator_status = !indicator_status;
     ref = ref + 500;
   }
-  return indicator_status;  
+  return indicator_status;
 }
 ////////////////////////////////////////////////////////////
 
@@ -151,7 +163,7 @@ void reconnect()
     {
       alert_state = 1;
       Serial.println("connected");
-      
+
       // publish connected message
       client.publish("device-health", "{\"message\":\"device-1-connected\"}");
       // ... start subscribing
@@ -179,18 +191,18 @@ void reconnect()
 /////////////////////   Set Up   ///////////////////////////
 void setup()
 {
-  pinMode(D5, OUTPUT);    // RELAY_SIGNAL
-  pinMode(D6, OUTPUT);    //INDICATOR
-  pinMode(D7, INPUT);    //PUSH_BUTTON
+  pinMode(D5, OUTPUT); // RELAY_SIGNAL
+  pinMode(D6, OUTPUT); //INDICATOR
+  pinMode(D7, INPUT);  //PUSH_BUTTON
 
   alerts(0);
 
   Serial.begin(115200);
   Serial.setDebugOutput(true);
-  
+
   setup_wifi();
   delay(1000);
-  
+
   if (!SPIFFS.begin())
   {
     Serial.println("Failed to mount file system");
@@ -228,21 +240,22 @@ void setup()
 //////////////////////    Loop    //////////////////////////
 void loop()
 {
-  if (!client.connected()){
+  if (!client.connected())
+  {
     alert_state = 0;
     reconnect();
   }
   client.loop();
 
-  push_button_status = (digitalRead(PUSH_BUTTON))? 1: 0;
-  
+  push_button_status = (digitalRead(PUSH_BUTTON)) ? 1 : 0;
+
   if (push_button_status || alert_state == 2)
     alerts(2);
   else if (alert_state)
     alerts(1);
   else
     alerts(0);
-  
+
   delay(20);
 }
 ////////////////////////////////////////////////////////////
