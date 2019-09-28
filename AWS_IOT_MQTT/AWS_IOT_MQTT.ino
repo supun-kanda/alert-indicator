@@ -184,6 +184,7 @@ void reconnect()
       // Wait 5 seconds before retrying
       delay(5000);
     }
+    initializer = true;
   }
 }
 ////////////////////////////////////////////////////////////
@@ -243,6 +244,7 @@ void loop()
   if (!client.connected())
   {
     alert_state = 0;
+    initializer = true;
     reconnect();
   }
   client.loop();
