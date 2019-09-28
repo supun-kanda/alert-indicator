@@ -5,20 +5,38 @@
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 
-#define LED_BUILTIN 2
+#define D5 14
+#define D6 12
+#define D7 13
+
+#define RELAY_SIGNAL D5
+#define INDICATOR D6
+#define PUSH_BUTTON D7
 
 //const char* ssid = "MBR1200B-6bf";
 //const char* password = "dyvcwkta007rulz";
 
+const char *ssid = "Kadzzzzzzz";
+const char *password = "(kandambi)";
+
+//const char *ssid = "Dialog 4G";
+//const char *password = "TFGHHTYA79G";
+
 DynamicJsonDocument doc(1024);
-String alert_type;
-String alert_message;
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
 
 const char *AWS_endpoint = "abx9e94fmlpan-ats.iot.us-west-2.amazonaws.com"; //MQTT broker ip
 
+WiFiClientSecure espClient;
+
+int alert_state = 0;
+bool cm_alert_status = false, push_button_status = false, indicator_status=false, initializer = true;
+unsigned long t = 0, ref = 0;
+String alert_type, alert_message;
+
+///////////////// Message CallBack /////////////////////////
 void callback(char *topic, byte *payload, unsigned int length)
 {
 
@@ -26,30 +44,42 @@ void callback(char *topic, byte *payload, unsigned int length)
   alert_type = doc["type"].as<String>();
   alert_message = doc["message"].as<String>();
 
-  if ((String)topic == "cm-alerts" && alert_type == "ERROR")
-  {
-    digitalWrite(LED_BUILTIN, LOW); // Turn the LED on
-    Serial.print("\nError Message: ");
-    Serial.println(alert_message);
-    Serial.println("Turning Light ON");
-  }
-  else
-  {
-    digitalWrite(LED_BUILTIN, HIGH); // Turn the LED off
-    Serial.println("Turning Light OFF");
+  if ((String)topic == "cm-alerts") {
+    if(alert_type == "ERROR"){
+      alert_state = 2;
+      Serial.print("\nError Message: ");
+      Serial.println(alert_message);
+      Serial.println("Turning Light ON");
+    } else if (alert_type == "FIXED"){
+      alert_state = 1;
+      Serial.println("Turning Light OFF");  
+    }
   }
 }
+////////////////////////////////////////////////////////////
 
-WiFiClientSecure espClient;
 PubSubClient client(AWS_endpoint, 8883, callback, espClient); //set  MQTT port number to 8883 as per standard
 long lastMsg = 0;
 char msg[50];
 int value = 0;
 
+/////////////////  Load a File   ///////////////////////////
+File loadFile(char *filename){
+  File file = SPIFFS.open(filename, "r");
+  if (file) {
+    Serial.print("Successfully opened ");
+    Serial.println(filename);
+  } else {
+    Serial.print("Failed to open ");
+    Serial.println(filename);
+  }
+  return file;
+}
+////////////////////////////////////////////////////////////
+
+/////////////////   Set-Up Wifi   //////////////////////////
 void setup_wifi()
 {
-
-  delay(10);
   // We start by connecting to a WiFi network
   espClient.setBufferSizes(512, 512);
   Serial.println();
@@ -77,7 +107,39 @@ void setup_wifi()
 
   espClient.setX509Time(timeClient.getEpochTime());
 }
+////////////////////////////////////////////////////////////
 
+/////////////////////   Alert   ////////////////////////////
+void alerts(int status){
+  digitalWrite(INDICATOR, flasher_value(status));
+  if (status==2)
+    digitalWrite(RELAY_SIGNAL, status);
+  else
+    digitalWrite(RELAY_SIGNAL, LOW);  
+}
+////////////////////////////////////////////////////////////
+
+///////////////////   Flasher   ////////////////////////////
+bool flasher_value(int status){
+  if (status==1)
+    return true;
+  if (!status)
+    return false;
+
+  t = millis();
+  if (initializer){
+    ref = t;
+    initializer = false;
+  }
+  if (t > ref){
+    indicator_status = !indicator_status;
+    ref = ref + 500;
+  }
+  return indicator_status;  
+}
+////////////////////////////////////////////////////////////
+
+/////////////////  Re-Connect  /////////////////////////////
 void reconnect()
 {
   // Loop until reconnected
@@ -87,8 +149,9 @@ void reconnect()
     // Attempt to connect
     if (client.connect("ESPthing"))
     {
-
+      alert_state = 1;
       Serial.println("connected");
+      
       // publish connected message
       client.publish("device-health", "{\"message\":\"device-1-connected\"}");
       // ... start subscribing
@@ -96,6 +159,7 @@ void reconnect()
     }
     else
     {
+      alert_state = 0;
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
@@ -110,16 +174,23 @@ void reconnect()
     }
   }
 }
+////////////////////////////////////////////////////////////
 
+/////////////////////   Set Up   ///////////////////////////
 void setup()
 {
-  pinMode(LED_BUILTIN, OUTPUT);    // Initialize the BUILTIN_LED pin as an output
-  digitalWrite(LED_BUILTIN, HIGH); // Turn the LED off at the begining
+  pinMode(D5, OUTPUT);    // RELAY_SIGNAL
+  pinMode(D6, OUTPUT);    //INDICATOR
+  pinMode(D7, INPUT);    //PUSH_BUTTON
+
+  alerts(0);
 
   Serial.begin(115200);
   Serial.setDebugOutput(true);
+  
   setup_wifi();
   delay(1000);
+  
   if (!SPIFFS.begin())
   {
     Serial.println("Failed to mount file system");
@@ -129,48 +200,20 @@ void setup()
   Serial.print("Heap: ");
   Serial.println(ESP.getFreeHeap());
 
-  // Load certificate file
-  File cert = SPIFFS.open("/cert.der", "r");
-  if (!cert)
-  {
-    Serial.println("Failed to open cert file");
-  }
-  else
-    Serial.println("Success to open cert file");
-
-  delay(1000);
+  // Load certificate files
+  File cert = loadFile("/cert.der");
+  File private_key = loadFile("/private.der");
+  File ca = loadFile("/ca.der");
 
   if (espClient.loadCertificate(cert))
     Serial.println("cert loaded");
   else
     Serial.println("cert not loaded");
 
-  // Load private key file
-  File private_key = SPIFFS.open("/private.der", "r");
-  if (!private_key)
-  {
-    Serial.println("Failed to open private cert file");
-  }
-  else
-    Serial.println("Success to open private cert file");
-
-  delay(1000);
-
   if (espClient.loadPrivateKey(private_key))
     Serial.println("private key loaded");
   else
     Serial.println("private key not loaded");
-
-  // Load CA file
-  File ca = SPIFFS.open("/ca.der", "r");
-  if (!ca)
-  {
-    Serial.println("Failed to open ca ");
-  }
-  else
-    Serial.println("Success to open ca");
-
-  delay(1000);
 
   if (espClient.loadCACert(ca))
     Serial.println("ca loaded");
@@ -180,13 +223,26 @@ void setup()
   Serial.print("Heap: ");
   Serial.println(ESP.getFreeHeap());
 }
+////////////////////////////////////////////////////////////
 
+//////////////////////    Loop    //////////////////////////
 void loop()
 {
-
-  if (!client.connected())
-  {
+  if (!client.connected()){
+    alert_state = 0;
     reconnect();
   }
   client.loop();
+
+  push_button_status = (digitalRead(PUSH_BUTTON))? 1: 0;
+  
+  if (push_button_status || alert_state == 2)
+    alerts(2);
+  else if (alert_state)
+    alerts(1);
+  else
+    alerts(0);
+  
+  delay(20);
 }
+////////////////////////////////////////////////////////////

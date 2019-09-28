@@ -21,6 +21,18 @@ var device = awsIot.device({
 app.get('/', function(req, res) {
     res.json({ message: 'WELCOME' });   
 });
+
+app.post('/PostAlert', function(req, res) {
+  console.log(req.body)
+  device.publish('cm-alerts', JSON.stringify({ message: "Error", type:"ERROR"}));
+  res.status(200).send({success:true});
+});
+
+app.post('/Fixed', function(req, res) {
+  console.log(req.body)
+  device.publish('cm-alerts', JSON.stringify({ message: "Error Fixed", type:"FIXED"}));
+  res.status(200).send({success:true});
+});
  
 app.listen(3000, () => console.log('Server started on port 3000'));
 
