@@ -115,10 +115,10 @@ bool flasher_value(int status)
     ref = t;
     initializer = false;
   }
-  if (t > ref)
-  {
+  if (t - ref > 500)
+  { 
     indicator_status = !indicator_status;
-    ref = ref + 500;
+    ref = t;
   }
   return indicator_status;
 }
@@ -142,7 +142,7 @@ void reconnect()
     }
     else
     {
-      alert_state = 0;
+      alerts(0);
 
       char buf[256];
       espClient.getLastSSLError(buf, 256);
