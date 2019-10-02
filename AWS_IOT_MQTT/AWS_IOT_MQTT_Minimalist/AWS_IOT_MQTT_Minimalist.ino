@@ -44,7 +44,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   alert_type = doc["type"].as<String>();
   alert_message = doc["message"].as<String>();
 
-  if ((String)topic == "cm-alerts")
+  if ((String)topic == "cm-alerts/alert")
   {
     if (alert_type == "ERROR")
       alert_state = 2;
@@ -136,9 +136,9 @@ void reconnect()
       alert_state = 1;
 
       // publish connected message
-      client.publish("device-health", "{\"message\":\"device-1-connected\"}");
+      client.publish("cm-alerts/connection", "{\"message\":\"device-node-mcu-connected\"}");
       // ... start subscribing
-      client.subscribe("cm-alerts");
+      client.subscribe("cm-alerts/alert");
     }
     else
     {
