@@ -23,3 +23,7 @@ Using this project, a separate physical Node MCU can be informed using MQTT prot
 - Give name for the Policy (`Alert-Policy`)
 - Customize your rules
 - More on [here](https://docs.aws.amazon.com/iot/latest/developerguide/register-device.html)
+
+### For more, refer these links
+- [Flashing Certificates To ROM](https://github.com/esp8266/arduino-esp8266fs-plugin.git)
+- [AWS IoT With Arduino](https://medium.com/@jgillard/marrying-esp8266-aws-iot-69f1ab219c2)
