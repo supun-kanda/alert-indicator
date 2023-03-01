@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/supun-kanda/alert-indicator#readme",
   "dependencies": {
-    "aws-iot-device-sdk": "^2.2.1",
+    "aws-iot-device-sdk": "^2.2.12",
     "body-parser": "^1.19.0",
     "express": "^4.17.1"
   }
